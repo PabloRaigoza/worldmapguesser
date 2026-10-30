@@ -15,8 +15,12 @@
   --heat-5: #0b4d17;
   --unseen: #e3e6ea;
 }
+/* Dark theme: follows the system unless the visitor picked one with the toggle (theme.js sets
+   data-theme on <html>). color-scheme also switches form controls and the shape images' colours. */
+:root { color-scheme: light; }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #12151c;
     --card: #1c2029;
     --text: #e8eaf0;
@@ -26,7 +30,29 @@
     --bad: #f87171;
     --border: #2e3442;
     --unseen: #313744;
+    --water: #172033;
+    --land: #475569;
+    --land-hover: #64748b;
+    --land-off: #2a3344;
+    --map-border: #1c2029;
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12151c;
+  --card: #1c2029;
+  --text: #e8eaf0;
+  --muted: #9aa1ae;
+  --accent: #60a5fa;
+  --good: #4ade80;
+  --bad: #f87171;
+  --border: #2e3442;
+  --unseen: #313744;
+  --water: #172033;
+  --land: #475569;
+  --land-hover: #64748b;
+  --land-off: #2a3344;
+  --map-border: #1c2029;
 }
 
 * { box-sizing: border-box; }
@@ -532,15 +558,6 @@ main:has(#grid:not([hidden])) .tabs { display: none; }
   --land-off: #e6eaf0;
   --map-border: #ffffff;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --water: #172033;
-    --land: #475569;
-    --land-hover: #64748b;
-    --land-off: #2a3344;
-    --map-border: #1c2029;
-  }
-}
 .map-prompt {
   text-align: center;
   font-size: 1.6rem;
@@ -658,3 +675,21 @@ main:has(#connect:not([hidden])) .site-footer { display: none; }
 .static-page main { line-height: 1.6; }
 .static-page h2 { text-align: left; margin-top: 28px; }
 .static-page .more-quizzes a { color: var(--text); }
+
+/* Light/dark toggle */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  margin-left: 4px;
+  border-radius: 999px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.theme-toggle:hover { color: var(--text); border-color: var(--border); }
+.theme-toggle svg { width: 18px; height: 18px; }
+.site-footer .theme-toggle { vertical-align: middle; margin-left: 8px; }

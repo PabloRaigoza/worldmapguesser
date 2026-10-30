@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="../">
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
   <title>About &amp; credits | World Map Guesser</title>
   <meta name="description" content="Credits, data sources and privacy for these free geography quizzes.">
   <link rel="canonical" href="https://www.worldmapguesser.com/about/">
@@ -23,6 +24,7 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#2563eb">
   <link rel="stylesheet" href="style.css">
+  <script src="theme.js" defer></script>
 </head>
 <body class="static-page">
   <main>
@@ -44,7 +46,7 @@
     <h2>Privacy</h2>
     <p>No accounts, no cookies and no tracking. Your scores, stats and records are saved only in your own browser
       (local storage), so clearing your browser data resets them.</p>
-    <footer class="site-footer"><a href="./">Play the quizzes</a></footer>
+    <footer class="site-footer"><a href="./">Play the quizzes</a><button type="button" class="theme-toggle"></button></footer>
   </main>
 </body>
 </html>

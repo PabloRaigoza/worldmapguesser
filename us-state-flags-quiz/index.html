@@ -7,6 +7,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="../">
+  <script>try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch {}</script>
   <title>US State Flags Quiz – All 50 State Flags | World Map Guesser</title>
   <meta name="description" content="Free US state flags quiz: name all 50 state flags plus DC, by region or all at once. Typing, multiple choice, grid mode and speed runs.">
   <link rel="canonical" href="https://www.worldmapguesser.com/us-state-flags-quiz/">
@@ -25,6 +26,7 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#2563eb">
   <link rel="stylesheet" href="style.css">
+  <script src="theme.js" defer></script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "State Flag Quiz", "url": "https://www.worldmapguesser.com/us-state-flags-quiz/", "description": "Free US state flags quiz: name all 50 state flags plus DC, by region or all at once. Typing, multiple choice, grid mode and speed runs.", "applicationCategory": "GameApplication", "operatingSystem": "Any", "isAccessibleForFree": true, "inLanguage": "en", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
 </head>
 <body data-kind="state-flags">
@@ -44,6 +46,7 @@
         <a href="us-states-map-quiz/" data-kind="state-map">Map</a>
         <a href="connect-us-states/" data-kind="state-connect">Connect</a>
       </div>
+      <button type="button" class="theme-toggle"></button>
     </nav>
     <!-- Home -->
     <section id="home" class="screen">

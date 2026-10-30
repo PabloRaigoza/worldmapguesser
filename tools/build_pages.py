@@ -87,6 +87,7 @@ def head(title, description, path, root, app_name=None):
     return f"""  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="{root}">
+  <script>try {{ const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; }} catch {{}}</script>
   <title>{t}</title>
   <meta name="description" content="{d}">
   <link rel="canonical" href="{url}">
@@ -104,7 +105,8 @@ def head(title, description, path, root, app_name=None):
   <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <meta name="theme-color" content="#2563eb">
-  <link rel="stylesheet" href="style.css">{ld}{ANALYTICS}"""
+  <link rel="stylesheet" href="style.css">
+  <script src="theme.js" defer></script>{ld}{ANALYTICS}"""
 
 
 def more_links(skip):
@@ -133,7 +135,7 @@ def static_page(path, title, description, body):
 <body class="static-page">
   <main>
 {body}
-    <footer class="site-footer"><a href="./">Play the quizzes</a></footer>
+    <footer class="site-footer"><a href="./">Play the quizzes</a><button type="button" class="theme-toggle"></button></footer>
   </main>
 </body>
 </html>
