@@ -37,31 +37,10 @@ SETTINGS = {
 ANCHOR = {"KI": (173.0, 1.4)}
 
 
-# ---- Projections (all return x right, y down, in arbitrary units) ----
-def equal_earth(lon, lat):
-    a1, a2, a3, a4 = 1.340264, -0.081106, 0.000893, 0.003796
-    th = math.asin(math.sqrt(3) / 2 * math.sin(math.radians(lat)))
-    t2 = th * th
-    t6 = t2 * t2 * t2
-    x = 2 * math.sqrt(3) * math.radians(lon) * math.cos(th) / (3 * (9 * a4 * t6 * t2 + 7 * a3 * t6 + 3 * a2 * t2 + a1))
-    y = th * (a1 + a2 * t2 + t6 * (a3 + a4 * t2))
-    return x, -y
+# ---- Projections (shared with the shape builder, so shapes look the way they do on the map) ----
+equal_earth, albers = bs.equal_earth, bs.albers
 
 
-def albers(lat1, lat2, lat0, lon0):
-    p1, p2, p0 = map(math.radians, (lat1, lat2, lat0))
-    n = (math.sin(p1) + math.sin(p2)) / 2
-    c = math.cos(p1) ** 2 + 2 * n * math.sin(p1)
-    rho0 = math.sqrt(c - 2 * n * math.sin(p0)) / n
-
-    def f(lon, lat):
-        rho = math.sqrt(c - 2 * n * math.sin(math.radians(lat))) / n
-        th = n * math.radians(lon - lon0)
-        return rho * math.sin(th), -(rho0 - rho * math.cos(th))
-    return f
-
-
-# ---- Geometry helpers ----
 def bbox(points):
     xs = [x for x, _ in points]
     ys = [y for _, y in points]
@@ -118,7 +97,7 @@ def load_world(src, codes):
 
 def world_projector():
     # Centred on 12°E with the seam at 168°W, so Chukotka, Fiji, Tonga and Samoa aren't cut in two.
-    lon0 = 12
+    lon0 = bs.WORLD_LON0
 
     def shift(poly):
         lons = [x for x, _ in poly[0]]
@@ -155,9 +134,7 @@ def build_us(src, codes):
             code = p["iso_3166_2"].split("-", 1)[1]
             if code in codes:
                 places.setdefault(code, []).extend(bs.polygons(f["geometry"]))
-    lower = albers(29.5, 45.5, 37.5, -96)
-    ak = albers(55, 65, 50, -154)
-    hi = albers(8, 18, 3, -157)
+    lower, ak, hi = bs.US_LOWER, bs.US_AK, bs.US_HI
     ak_lon = lambda x: x - 360 if x > 0 else x  # western Aleutians sit past the antimeridian
 
     def proj(code, poly):

@@ -99,6 +99,13 @@ kbd { font-size: .75em; color: var(--muted); margin-left: 4px; }
 .regions button strong { font-size: 1.1rem; }
 .regions button span { color: var(--muted); font-size: .9rem; }
 .regions button.world { grid-column: 1 / -1; text-align: center; align-items: center; }
+.regions button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.regions button[aria-pressed="true"] strong::before { content: "✓ "; color: var(--accent); }
+.region-hint { text-align: center; color: var(--muted); font-size: .9rem; margin: 0 0 10px; }
+.start-row { display: flex; justify-content: center; margin: 16px 0 0; }
+.start-row button { padding: 12px 28px; font-size: 1.05rem; font-weight: 600; max-width: 100%; }
+.start-row button:disabled { opacity: .55; cursor: default; }
 
 .options { max-width: 560px; margin: 24px auto 16px; display: flex; flex-direction: column; gap: 10px; }
 .option { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); line-height: 1.4; }
@@ -510,6 +517,33 @@ main:has(#grid:not([hidden])) .tabs { display: none; }
 .cell-img { height: 120px; display: flex; align-items: center; justify-content: center; }
 .cell-img img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 1px 3px rgba(0,0,0,.3)); }
 .cell-img img.rot { max-width: none; max-height: none; }
+/* City grid: a square map picture per cell, clipped so a rotated one doesn't spill out */
+.grid-cells.city { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.cell-img.city-thumb { height: auto; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--water); }
+.cell-img.city-thumb img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; filter: none; }
+.grid-actions { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.city-views.grid-views { position: static; }
+.grid-credit { font-size: .75rem; color: var(--muted); text-align: right; margin: 10px 0 0; }
+.grid-credit a { color: inherit; }
+.grid-hint { font-size: .8rem; color: var(--muted); text-align: center; margin: 14px 0 0; }
+
+/* Larger view of a grid picture */
+.cell-img { position: relative; cursor: zoom-in; }
+.cell-zoom {
+  position: absolute; top: 6px; right: 6px; z-index: 1; padding: 2px 6px; font-size: .85rem; line-height: 1.4;
+  background: color-mix(in srgb, var(--card) 85%, transparent); border-radius: 6px; opacity: .75;
+}
+.cell-img:hover .cell-zoom { opacity: 1; border-color: var(--accent); }
+.zoom-dialog { padding: 0; border: 0; background: transparent; overflow: visible; max-width: none; max-height: none; }
+.zoom-dialog::backdrop { background: rgba(10, 14, 20, .72); }
+.zoom-body { width: min(92vw, 88vh); height: min(92vw, 88vh); }
+.zoom-body .map-wrap { width: 100%; height: 100%; }
+.zoom-img { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  background: var(--card); border-radius: 12px; padding: 4%; box-sizing: border-box; }
+.zoom-img img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,.35)); }
+.zoom-img img.rot { max-width: none; max-height: none; }
+.zoom-close { position: absolute; top: -14px; right: -14px; width: 34px; height: 34px; padding: 0; border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .cell input {
   width: 100%;
   font: inherit;
@@ -618,6 +652,69 @@ main:has(#grid:not([hidden])) .tabs { display: none; }
   #game .map-wrap { height: clamp(220px, calc(100vh - 470px), 560px); }
 }
 .map-wrap.glow-soft { animation: glow-soft .45s ease-out; }
+/* City grid: citymaps/<id>.svg inside #map-svg. Road widths are in map units (set per city by the
+   build script), so streets get wider as you zoom in, like a printed map. */
+#map-svg.city { --c-land: #f2efe9; --c-water: #aad3df; --c-green: #cdebb0; --c-road: #fff; --c-foot: #d6cebf; --c-plaza: #faf8f4;
+  --c-primary: #fcd6a4; --c-major: #f6c66b; --c-rail: #9a9a9a; }
+#map-svg.city .c-land { fill: var(--c-land); }
+#map-svg.city .c-sea, #map-svg.city .c-water { fill: var(--c-water); }
+#map-svg.city .c-green { fill: var(--c-green); }
+#map-svg.city .c-plaza { fill: var(--c-plaza); }
+#map-svg.city .c-river { fill: none; stroke: var(--c-water); }
+#map-svg.city .c-rail { fill: none; stroke: var(--c-rail); stroke-dasharray: 6 4; }
+#map-svg.city .c-road { fill: none; stroke: var(--c-road); stroke-linecap: round; stroke-linejoin: round; }
+#map-svg.city .c-foot { stroke: var(--c-foot); }
+#map-svg.city .c-primary { stroke: var(--c-primary); }
+#map-svg.city .c-major { stroke: var(--c-major); }
+#map-svg.city text { fill: var(--muted); }
+/* Views: map = the drawing; satellite = the photo alone; terrain = hill shading with water and streets on top. */
+#map-svg.city:not([data-view="sat"]) .c-sat, #map-svg.city:not([data-view="terrain"]) .c-terrain { display: none; }
+#map-svg.city[data-view="sat"] .c-vec { display: none; }
+#map-svg.city[data-view="terrain"] :is(.c-land, .c-green, .c-plaza, .c-foot) { display: none; }
+#map-svg.city[data-view="terrain"] .c-road { stroke: rgba(70, 60, 50, .28); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #map-svg.city { --c-land: #262b35; --c-water: #1d3a52; --c-green: #24372a; --c-road: #59606e;
+    --c-foot: #424958; --c-plaza: #2c313c; --c-primary: #8a7350; --c-major: #b38c46; --c-rail: #6b7280; }
+}
+:root[data-theme="dark"] #map-svg.city { --c-land: #262b35; --c-water: #1d3a52; --c-green: #24372a; --c-road: #59606e;
+  --c-foot: #424958; --c-plaza: #2c313c; --c-primary: #8a7350; --c-major: #b38c46; --c-rail: #6b7280; }
+.city-views {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.city-views button { border: 0; border-radius: 0; padding: 6px 12px; font-size: .9rem; background: transparent; color: var(--muted); }
+.city-views button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.city-views button:disabled { opacity: .4; cursor: default; }
+.city-credit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  max-width: 100%;
+  padding: 2px 6px;
+  font-size: .7rem;
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+  color: var(--muted);
+  border-top-left-radius: 6px;
+}
+.city-credit a { color: inherit; }
+/* A rotated city map: a square the size of the box's diagonal (--d, set from JS), turned about the
+   box's centre, so it covers the box at any angle. */
+.map-rot { position: absolute; left: 50%; top: 50%; width: var(--d, 100%); height: var(--d, 100%);
+  transform: translate(-50%, -50%) rotate(var(--angle, 0deg)); will-change: transform; }
+.map-rot.spin { animation: map-spin var(--spin-dur, 4s) linear infinite; }
+@keyframes map-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) { .map-rot.spin { animation-duration: calc(var(--spin-dur, 4s) * 3); } }
 
 /* Connect */
 main:has(#connect:not([hidden])) { max-width: 1100px; padding-top: 20px; }

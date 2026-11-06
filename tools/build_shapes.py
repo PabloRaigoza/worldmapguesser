@@ -6,12 +6,16 @@ Usage:
 
 <codes> is a comma-separated list of ISO alpha-2 codes (lowercase) to build, or with --admin1 <country>,
 that country's subdivision codes (the part after the dash in ISO 3166-2, e.g. "ca" for US-CA).
+Add --local for the old style: each outline in its own projection centred on it.
 Download the input from
 https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_0_countries.geojson
 https://raw.githubusercontent.com/nvkelso/natural-earth-vector/v5.1.2/geojson/ne_10m_admin_1_states_provinces_lakes.geojson
 
-Each outline gets its own Lambert azimuthal equal-area projection centred on the country,
-so shapes aren't stretched (and countries crossing the antimeridian stay in one piece).
+Each outline is drawn in the same projection as the clickable map (tools/build_map.py), so a shape
+looks the way it does on the map: Equal Earth centred on 12°E for countries, and the US map's Albers
+projections for states (Alaska and Hawaii have their own, as in the map's insets). A country that
+crosses the map's seam is kept in one piece by measuring its longitudes from its own centre.
+With --local, each outline gets a Lambert azimuthal equal-area projection centred on it instead.
 """
 import json
 import math
@@ -37,6 +41,50 @@ ONLY = {"FR": "France", "BR": "Brazil", "AU": "Australia", "KZ": "Kazakhstan"}
 FAR_LIMIT_KM = {"NO": 300}  # leave out Svalbard and Jan Mayen
 # Countries whose core is just the largest polygon (overseas parts are big enough to count otherwise).
 CORE_IS_LARGEST = {"FR"}  # French Guiana is ~13% of France's land area
+
+
+# ---- Projections (x right, y down, arbitrary units); tools/build_map.py uses these too ----
+WORLD_LON0 = 12  # the world map's central meridian
+
+
+def equal_earth(lon, lat):
+    a1, a2, a3, a4 = 1.340264, -0.081106, 0.000893, 0.003796
+    th = math.asin(math.sqrt(3) / 2 * math.sin(math.radians(lat)))
+    t2 = th * th
+    t6 = t2 * t2 * t2
+    x = 2 * math.sqrt(3) * math.radians(lon) * math.cos(th) / (3 * (9 * a4 * t6 * t2 + 7 * a3 * t6 + 3 * a2 * t2 + a1))
+    y = th * (a1 + a2 * t2 + t6 * (a3 + a4 * t2))
+    return x, -y
+
+
+def albers(lat1, lat2, lat0, lon0):
+    p1, p2, p0 = map(math.radians, (lat1, lat2, lat0))
+    n = (math.sin(p1) + math.sin(p2)) / 2
+    c = math.cos(p1) ** 2 + 2 * n * math.sin(p1)
+    rho0 = math.sqrt(c - 2 * n * math.sin(p0)) / n
+
+    def f(lon, lat):
+        rho = math.sqrt(c - 2 * n * math.sin(math.radians(lat))) / n
+        th = n * math.radians(lon - lon0)
+        return rho * math.sin(th), -(rho0 - rho * math.cos(th))
+    return f
+
+
+# The US map's projections: the lower 48, and the Alaska and Hawaii insets.
+US_LOWER = albers(29.5, 45.5, 37.5, -96)
+US_AK = albers(55, 65, 50, -154)
+US_HI = albers(8, 18, 3, -157)
+
+
+def map_projection(code, admin1, ref):
+    """The clickable map's projection for this place, as (lon, lat) -> (x, y). `ref` is the
+    place's central longitude: longitudes are unwrapped around it so nothing splits at a seam."""
+    if admin1 == "US":
+        f = {"AK": US_AK, "HI": US_HI}.get(code, US_LOWER)
+        return lambda lon, lat: f(unwrap(lon, ref), lat)
+    if admin1:
+        raise SystemExit(f"no map projection for {admin1}; use --local")
+    return lambda lon, lat: equal_earth(unwrap(lon, ref) - WORLD_LON0, lat)
 
 
 def iso2(props):
@@ -146,7 +194,7 @@ def simplify(pts, tol):
     return [p for p, k in zip(pts, keep) if k]
 
 
-def build(code, polys):
+def build(code, polys, admin1=None, local=False):
     polys = keep_polygons(code, polys)
     main = max(polys, key=lambda p: ring_area_km2(p[0]))
     ref = centroid(main[0])[0]
@@ -155,7 +203,8 @@ def build(code, polys):
     lon0 = ((min(lons) + max(lons)) / 2 + 180) % 360 - 180
     lat0 = (min(lats) + max(lats)) / 2
 
-    rings = [[[project(x, y, lon0, lat0) for x, y in ring] for ring in p] for p in polys]
+    f = (lambda x, y: project(x, y, lon0, lat0)) if local else map_projection(code, admin1, lon0)
+    rings = [[[f(x, y) for x, y in ring] for ring in p] for p in polys]
     xs = [x for p in rings for x, _ in p[0]]
     ys = [y for p in rings for _, y in p[0]]
     w, h = max(xs) - min(xs), max(ys) - min(ys)
@@ -204,8 +253,10 @@ def build(code, polys):
 
 
 def main():
-    src, out_dir, codes = sys.argv[1], sys.argv[2], sys.argv[3].upper().split(",")
-    admin1 = sys.argv[5].upper() if len(sys.argv) > 5 and sys.argv[4] == "--admin1" else None
+    local = "--local" in sys.argv
+    argv = [a for a in sys.argv if a != "--local"]
+    src, out_dir, codes = argv[1], argv[2], argv[3].upper().split(",")
+    admin1 = argv[5].upper() if len(argv) > 5 and argv[4] == "--admin1" else None
     fc = json.load(open(src, encoding="utf-8"))
     by_code, by_name = {}, {}
     for f in fc["features"]:
@@ -227,7 +278,7 @@ def main():
             print("missing", code)
             continue
         with open(os.path.join(out_dir, f"{code.lower()}.svg"), "w", encoding="utf-8") as fh:
-            fh.write(build(code, polys))
+            fh.write(build(code, polys, admin1, local))
     print("built", len(codes))
 
 

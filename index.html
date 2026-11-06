@@ -47,6 +47,12 @@
         <a href="us-states-map-quiz/" data-kind="state-map">Map</a>
         <a href="connect-us-states/" data-kind="state-connect">Connect</a>
       </div>
+      <div class="tab-set">
+        <span class="tab-group">City grid</span>
+        <a href="city-grid-quiz/" data-kind="cities">Cities</a>
+        <a href="capital-city-grid-quiz/" data-kind="capitals">Capitals</a>
+        <a href="us-state-capital-grid-quiz/" data-kind="state-capitals">State capitals</a>
+      </div>
       <button type="button" class="theme-toggle"></button>
     </nav>
     <!-- Home -->
@@ -60,8 +66,10 @@
         </table>
       </aside>
       <h1 id="home-title">World Map Guesser</h1>
-      <p id="home-intro" class="sub">Pick a continent and click each country on the map.</p>
-      <div id="region-list" class="regions"></div>
+      <p id="home-intro" class="sub">Pick one or more continents and click each country on the map.</p>
+      <p class="region-hint">Pick one or more regions · double-click one to play it straight away</p>
+      <div id="region-list" class="regions" role="group" aria-label="Regions"></div>
+      <div class="start-row"><button id="start-btn" class="primary" type="button">Start</button></div>
       <div class="options">
         <div class="choice-row" id="answer-row">
           <span class="choice-label">Answer</span>
@@ -135,7 +143,7 @@
 <p>A country's name appears above the map; click it. Scroll or pinch to zoom and drag to move. Small countries and islands have a dot you can click. After three wrong clicks the answer is shown.</p>
 <p>Hide the borders for a real challenge: the land is drawn in one colour, so you have to know where each country sits.</p>
 <h2>More quizzes</h2>
-<ul class="more-quizzes"><li><a href="flag-quiz/">Flag quiz</a></li><li><a href="country-shape-quiz/">Country shapes</a></li><li><a href="connect-countries/">Connect countries</a></li><li><a href="us-state-flags-quiz/">US state flags</a></li><li><a href="us-state-shapes-quiz/">US state shapes</a></li><li><a href="us-states-map-quiz/">US states map</a></li><li><a href="connect-us-states/">Connect US states</a></li></ul>
+<ul class="more-quizzes"><li><a href="flag-quiz/">Flag quiz</a></li><li><a href="country-shape-quiz/">Country shapes</a></li><li><a href="connect-countries/">Connect countries</a></li><li><a href="us-state-flags-quiz/">US state flags</a></li><li><a href="us-state-shapes-quiz/">US state shapes</a></li><li><a href="us-states-map-quiz/">US states map</a></li><li><a href="connect-us-states/">Connect US states</a></li><li><a href="city-grid-quiz/">City grid</a></li><li><a href="capital-city-grid-quiz/">Capital city grid</a></li><li><a href="us-state-capital-grid-quiz/">State capital grid</a></li></ul>
       </div>
     </section>
 
@@ -179,6 +187,12 @@
           <button id="zoom-out" aria-label="Zoom out">−</button>
           <button id="zoom-reset" aria-label="Reset view">⟲</button>
         </div>
+        <div id="city-views" class="city-views" role="group" aria-label="Map view" hidden>
+          <button type="button" data-view="map">Map</button>
+          <button type="button" data-view="sat">Satellite</button>
+          <button type="button" data-view="terrain">Terrain</button>
+        </div>
+        <div id="city-credit" class="city-credit" hidden></div>
       </div>
       <div id="reveal" class="reveal" aria-live="polite"></div>
       <div id="guess-box" class="guess-box">
@@ -212,8 +226,21 @@
         <span id="grid-time">0:00.00</span>
         <span id="grid-best" class="speed-best"></span>
       </div>
-      <div class="actions grid-actions"><button id="grid-end-btn">Give up</button></div>
+      <div class="actions grid-actions">
+        <div id="grid-views" class="city-views grid-views" role="group" aria-label="Map type" hidden>
+          <button type="button" data-view="map">Map</button>
+          <button type="button" data-view="sat">Satellite</button>
+          <button type="button" data-view="terrain">Terrain</button>
+        </div>
+        <button id="grid-end-btn">Give up</button>
+      </div>
       <ul id="grid-list" class="grid-cells"></ul>
+      <p id="grid-credit" class="grid-credit" hidden></p>
+      <p class="grid-hint">Click a picture for a larger view · arrow keys in an empty box move between boxes · Tab or ↑ ↓ to move through the list</p>
+      <dialog id="zoom-dialog" class="zoom-dialog" aria-label="Larger view">
+        <div id="zoom-body" class="zoom-body"></div>
+        <button type="button" id="zoom-close" class="zoom-close" aria-label="Close larger view">✕</button>
+      </dialog>
     </section>
 
     <!-- Connect: join two places through land neighbours -->
@@ -310,6 +337,7 @@
   <div id="tooltip" class="tooltip" hidden></div>
   <script src="data.js"></script>
   <script src="neighbors.js"></script>
+  <script src="cities.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

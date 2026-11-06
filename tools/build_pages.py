@@ -26,20 +26,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = [
     ("flags", "flag-quiz/", "Flag Quiz – Guess All 197 World Flags",
      "Free flag quiz: name every country's flag, by continent or the whole world. Type, multiple choice or grid mode, speed runs and stats on your slowest flags.",
-     "Flag Quiz", "Pick a continent and type the country for each flag.",
+     "Flag Quiz", "Pick one or more continents and type the country for each flag.",
      f"""<h2>How to play</h2>
 <p>A flag appears; type the country it belongs to. The list suggests names as you type, or switch to multiple choice, or put a whole continent on screen at once with the grid layout. Missed flags come back at the end of the round, and <em>My stats</em> shows which flags you're slowest on.</p>
 <h2>Which flags are included?</h2>
 <p>All {N_COUNTRIES} countries: the 193 UN members plus Vatican City, Palestine, Kosovo and Taiwan, grouped by continent. Turn on speed run to race the clock and set a record for each continent.</p>"""),
     ("shapes", "country-shape-quiz/", "Country Shape Quiz – Guess Countries by Outline",
      "Can you recognise a country from its outline? Free country shape quiz for every continent, with optional rotation, multiple choice and speed runs.",
-     "Country Shape Quiz", "Pick a continent and name each country from its outline.",
+     "Country Shape Quiz", "Pick one or more continents and name each country from its outline.",
      """<h2>How to play</h2>
-<p>Each round shows a country's silhouette with no map around it. Name it by typing, from a list, or from four choices. For a harder game, turn the shapes 90°, to any angle, or set them spinning.</p>
+<p>Each round shows a country's silhouette with no map around it. Name it by typing, from a list, or from four choices. Every outline is drawn the way the country looks on the world map. For a harder game, turn the shapes 90°, to any angle, or set them spinning.</p>
 <p>Outlines are drawn to scale for each country individually, so small and large countries fill the screen the same way; tiny island nations are shown as dots.</p>"""),
     ("map", "", "World Map Guesser – Free World Map Quiz",
      "Free world map quiz: find and click every country on a zoomable map, one continent or the whole world, with or without borders. Plus flag, shape and US state quizzes.",
-     "World Map Guesser", "Pick a continent and click each country on the map.",
+     "World Map Guesser", "Pick one or more continents and click each country on the map.",
      """<h2>How to play</h2>
 <p>A country's name appears above the map; click it. Scroll or pinch to zoom and drag to move. Small countries and islands have a dot you can click. After three wrong clicks the answer is shown.</p>
 <p>Hide the borders for a real challenge: the land is drawn in one colour, so you have to know where each country sits.</p>"""),
@@ -50,17 +50,17 @@ PAGES = [
 <p>Two countries are highlighted on the map. Type countries that link them through shared land borders. Each guess is coloured: green if it's on a shortest route, amber if it's a step or two off, red if it's off track. Connect them before you run out of guesses.</p>"""),
     ("state-flags", "us-state-flags-quiz/", "US State Flags Quiz – All 50 State Flags",
      "Free US state flags quiz: name all 50 state flags plus DC, by region or all at once. Typing, multiple choice, grid mode and speed runs.",
-     "State Flag Quiz", "Pick a region and type the US state for each flag.",
+     "State Flag Quiz", "Pick one or more regions and type the US state for each flag.",
      """<h2>How to play</h2>
 <p>A state flag appears; type the state. Play all 50 states plus Washington, D.C., or one Census region at a time: Northeast, Midwest, South or West. Includes the newest flags, such as Minnesota's and Utah's from 2024.</p>"""),
     ("state-shapes", "us-state-shapes-quiz/", "US State Shapes Quiz – Guess States by Outline",
      "Recognise all 50 US states from their outlines. Free state shape quiz with rotation, multiple choice and speed runs.",
-     "State Shape Quiz", "Pick a region and name each US state from its outline.",
+     "State Shape Quiz", "Pick one or more regions and name each US state from its outline.",
      """<h2>How to play</h2>
-<p>Each round shows one state's outline on its own. Name it by typing, from a list, or from four choices. Rotate or spin the shapes for an extra challenge.</p>"""),
+<p>Each round shows one state's outline on its own. Name it by typing, from a list, or from four choices. Each state is drawn the way it looks on the US map. Rotate or spin the shapes for an extra challenge.</p>"""),
     ("state-map", "us-states-map-quiz/", "US States Map Quiz – Find All 50 States",
      "Free US map quiz: find all 50 states and DC on a zoomable map, with an optional borderless mode.",
-     "State Map Quiz", "Pick a region and click each state on the map.",
+     "State Map Quiz", "Pick one or more regions and click each state on the map.",
      """<h2>How to play</h2>
 <p>A state's name appears above the map; click it. Alaska and Hawaii are in the corner as usual, and DC has a dot. Hide the borders to test whether you really know where each state is.</p>"""),
     ("state-connect", "connect-us-states/", "Connect US States – State Border Puzzle",
@@ -68,6 +68,22 @@ PAGES = [
      "Connect States", "Join two states with a chain of neighbours that share borders.",
      """<h2>How to play</h2>
 <p>Two states are highlighted. Type states that link them through shared borders (states that only touch at a corner, like the Four Corners, don't count). Green guesses are on a shortest route, amber are close, red are off track.</p>"""),
+    ("cities", "city-grid-quiz/", "City Grid Quiz – Guess the City from Its Streets",
+     "Can you recognise Tokyo, Paris or New York from the street layout alone? A free quiz on maps with no labels, with map, satellite and terrain views.",
+     "City Grid Quiz", "Pick one or more continents and name each city from its streets.",
+     """<h2>How to play</h2>
+<p>A map of a famous city appears with no names or labels at all. Drag and zoom to study the street grid, rivers, parks and coastline, then type the city or pick it from four choices. Switch between the street map, satellite and terrain views at any time. For more of a challenge, turn or spin the map, or put a whole continent of cities on screen at once with the grid layout.</p>
+<p>Over 100 cities from every continent: world capitals, big metropolises and favourite places to visit like Venice, Kyoto and Cusco.</p>"""),
+    ("capitals", "capital-city-grid-quiz/", "Capital City Grid Quiz – Guess World Capitals from Their Streets",
+     f"Name all {N_COUNTRIES} capital cities from a map with no labels. A free capitals quiz by continent, with map, satellite and terrain views.",
+     "Capital City Grid", "Pick one or more continents and name each capital from its streets.",
+     f"""<h2>How to play</h2>
+<p>Each round shows a capital city on a map with all labels hidden. Study its layout, then name it. Every one of the {N_COUNTRIES} countries is here, from Tokyo and Paris to Funafuti and Ngerulmud. Where a country has more than one capital, the official one is used (Pretoria, Sucre, Amsterdam).</p>"""),
+    ("state-capitals", "us-state-capital-grid-quiz/", "US State Capitals Grid Quiz – Guess Capitals from Their Streets",
+     "Name all 50 US state capitals from a map with no labels, by region or all at once. Map, satellite and terrain views.",
+     "State Capital Grid", "Pick one or more regions and name each state capital from its streets.",
+     """<h2>How to play</h2>
+<p>A state capital appears on a map with no labels. Look at the streets, rivers and state capitol grounds, then name the city. Play all 50 or one Census region at a time.</p>"""),
 ]
 
 
@@ -112,7 +128,8 @@ def head(title, description, path, root, app_name=None):
 def more_links(skip):
     names = {"flags": "Flag quiz", "shapes": "Country shapes", "map": "World map quiz", "connect": "Connect countries",
              "state-flags": "US state flags", "state-shapes": "US state shapes", "state-map": "US states map",
-             "state-connect": "Connect US states"}
+             "state-connect": "Connect US states", "cities": "City grid", "capitals": "Capital city grid",
+             "state-capitals": "State capital grid"}
     items = "".join(f'<li><a href="{p or "./"}">{names[k]}</a></li>' for k, p, *_ in PAGES if k != skip)
     return f"<h2>More quizzes</h2>\n<ul class=\"more-quizzes\">{items}</ul>"
 
@@ -146,8 +163,14 @@ ABOUT = """    <h1>About &amp; credits</h1>
     <p class="sub">World Map Guesser is a set of free geography quizzes: maps, flags, shapes and border puzzles.</p>
     <h2>Credits</h2>
     <ul>
-      <li><strong>Maps, country and state outlines, and borders</strong>:
+      <li><strong>Maps, country and state outlines, borders and city locations</strong>:
         <a href="https://www.naturalearthdata.com/">Natural Earth</a> (public domain).</li>
+      <li><strong>City grid maps</strong>: streets, water and parks from
+        <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors (ODbL), via
+        <a href="https://protomaps.com/">Protomaps</a>; satellite pictures from
+        <a href="https://s2maps.eu">Sentinel-2 cloudless 2016</a> by EOX (CC BY 4.0, contains modified Copernicus
+        Sentinel data) and, for US cities, the <a href="https://www.usgs.gov/">USGS</a> (public domain); terrain from the
+        <a href="https://registry.opendata.aws/terrain-tiles/">AWS Terrain Tiles</a> (Mapzen; SRTM and other public sources).</li>
       <li><strong>US state flags</strong>: drawings from
         <a href="https://commons.wikimedia.org/wiki/Category:SVG_flags_of_the_United_States_states">Wikimedia Commons</a>,
         public domain (Mississippi's is marked “copyrighted free use”, which allows any use).</li>

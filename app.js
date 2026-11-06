@@ -39,17 +39,40 @@
       ...US, one: "shape", many: "shapes", prefix: "stateshapequiz", shape: true,
       img: (code) => `stateshapes/${code}.svg`,
     },
+    // City grid: name the city from a map with no labels (cities.js and citymaps/, built by
+    // tools/build_cities.py and tools/build_city_maps.py). `city` names the list in CITIES; results
+    // and stats show the city's country or state flag.
+    cities: {
+      ...WORLD, regions: CITIES.cities.regions, noun: "city", nouns: "cities", one: "city", many: "cities",
+      prefix: "cityquiz", city: "cities",
+      img: (code) => `flags/${CITIES.cities.info[code][4]}.svg`,
+    },
+    capitals: {
+      ...WORLD, regions: CITIES.capitals.regions, noun: "city", nouns: "cities", one: "capital", many: "capitals",
+      prefix: "capitalquiz", city: "capitals",
+      img: (code) => `flags/${code}.svg`,
+    },
+    "state-capitals": {
+      ...US, regions: CITIES["state-capitals"].regions, all: "All capitals", noun: "city", nouns: "cities",
+      one: "capital", many: "capitals", prefix: "statecapitalquiz", city: "state-capitals",
+      img: (code) => `stateflags/${code}.svg`,
+    },
   };
   // Each quiz is its own page (built by tools/build_pages.py), which says which one it is.
   const PAGES = {
     flags: "flag-quiz/", shapes: "country-shape-quiz/", map: "./", connect: "connect-countries/",
     "state-flags": "us-state-flags-quiz/", "state-shapes": "us-state-shapes-quiz/",
     "state-map": "us-states-map-quiz/", "state-connect": "connect-us-states/",
+    cities: "city-grid-quiz/", capitals: "capital-city-grid-quiz/", "state-capitals": "us-state-capital-grid-quiz/",
   };
   // Old links used #map etc. on a single page: send them to the quiz's own page.
   if (location.hash.slice(1) in PAGES) location.replace(PAGES[location.hash.slice(1)]);
   const kindFromPage = () => (document.body.dataset.kind in KINDS ? document.body.dataset.kind : "map");
   let K = KINDS[kindFromPage()];
+  // Grid layout puts every picture on screen at once; maps (and a full map per city) can't do that.
+  const canGrid = () => !K.map;
+  // Rotation turns shapes and city maps.
+  const canRotate = () => !!(K.shape || K.city);
   const key = (name) => `${K.prefix}.${name}`;
   const cap = (w) => w[0].toUpperCase() + w.slice(1);
   const REVEAL_MS = 1600;
@@ -149,7 +172,8 @@
   // runs = every completed speed run, oldest first: { label, ms, at, prevMs (best before this run, if ranked) }
   let runs;
   const saveRuns = () => save(key("runs"), runs);
-  const isRanked = (label) => label === K.all || label in K.regions;
+  // Any mix of whole regions is ranked; its label lists them in page order (see sessionLabel()).
+  const isRanked = (label) => label === K.all || label.split(" + ").every((r) => r in K.regions);
   // stats[code] = { c: times correct, m: times missed, t: total ms to correct, best: fastest ms,
   //                 r: ms for each of the last RECENT_N showings (a miss counts as at least MISS_PENALTY_S) }
   const saveBank = () => save(key("missed"), [...bank]);
@@ -175,6 +199,7 @@
     opts = {
       requeue: true, infinite: false, weighted: false, speedrun: false, temp: 2,
       answer: "dropdown", layout: "single", rotate: "none", spin: 90, borders: "shown", highlight: true,
+      mapType: "map",
       ...load(key("options"), {}),
     };
     for (const name of ["answer", "layout", "rotate", "borders"]) {
@@ -187,6 +212,8 @@
     $("opt-infinite").checked = opts.infinite;
     $("opt-weighted").checked = opts.weighted;
     $("opt-temp").value = opts.temp;
+    // Regions picked on the home screen, in page order.
+    picked = new Set(load(key("regions"), Object.keys(K.regions)).filter((r) => r in K.regions));
     syncOptions();
     // Wording and tab highlight
     document.querySelectorAll(".n-one").forEach((el) => { el.textContent = K.one; });
@@ -216,11 +243,12 @@
     opts.spin = Number($("opt-spin").value);
     save(key("options"), opts);
     $("spin-value").textContent = `${opts.spin}°/s`;
-    // Rotation only applies to shapes.
-    $("rotate-row").hidden = !K.shape;
-    $("spin-row").hidden = !K.shape || opts.rotate !== "spin";
+    // Rotation only applies to shapes and city maps.
+    $("rotate-row").hidden = !canRotate();
+    $("spin-row").hidden = !canRotate() || opts.rotate !== "spin";
     // Map quizzes are answered by clicking, so answer style and layout don't apply.
-    $("answer-row").hidden = $("layout-row").hidden = !!K.map;
+    $("answer-row").hidden = !!K.map;
+    $("layout-row").hidden = !canGrid();
     $("borders-row").hidden = !K.map;
     $("highlight-label").hidden = !K.map || !!K.connect;
     // Connect is its own game: none of the round options, records or per-place stats apply.
@@ -228,7 +256,7 @@
       $(id).closest(".option").hidden = !!K.connect;
     }
     $("records").hidden = $("stats-btn").hidden = !!K.connect;
-    const grid = !K.map && opts.layout === "grid";
+    const grid = canGrid() && opts.layout === "grid";
     $("temp-value").textContent = `${opts.temp.toFixed(1)}s`;
     $("temp-row").hidden = !opts.weighted || opts.speedrun || !!K.connect;
     // Weighted mode brings slow/missed flags back by itself; a speed run is one straight pass with no misses.
@@ -249,10 +277,10 @@
   function variantTag(o = opts) {
     if (K.map) return o.borders === "hidden" ? "borderless" : "";
     const parts = [];
-    if (o.layout === "grid") parts.push("grid");
+    if (canGrid() && o.layout === "grid") parts.push("grid");
     if (o.answer === "mc") parts.push("multiple choice");
     if (o.answer === "type") parts.push("typed");
-    if (K.shape && o.rotate !== "none") {
+    if (canRotate() && o.rotate !== "none") {
       parts.push({ right: "90° steps", any: "any angle", spin: "spinning" }[o.rotate]);
     }
     return parts.join(" · ");
@@ -326,14 +354,23 @@
     for (const s of document.querySelectorAll(".screen")) s.hidden = s.id !== id;
   }
 
+  // ---- Home: pick one or more regions ----
+  let picked = new Set();
+  const regionCodes = (region) => K.regions[region].map((e) => e[0]);
+  const pickedCodes = () => Object.keys(K.regions).filter((r) => picked.has(r)).flatMap(regionCodes);
+  // "World" for everything, else the picked regions in page order: "Africa + Europe".
+  function sessionLabel() {
+    const names = Object.keys(K.regions).filter((r) => picked.has(r));
+    return names.length === Object.keys(K.regions).length ? K.all : names.join(" + ");
+  }
+
   function renderHome() {
     session = null;
     const list = $("region-list");
     list.innerHTML = "";
     list.append(regionButton(K.all, Object.keys(COUNTRIES), "world"));
-    for (const [region, entries] of Object.entries(K.regions)) {
-      list.append(regionButton(region, entries.map((e) => e[0])));
-    }
+    for (const region of Object.keys(K.regions)) list.append(regionButton(region, regionCodes(region)));
+    renderPicked();
     const pb = $("practice-btn");
     pb.hidden = bank.size === 0;
     pb.textContent = `Practice my missed ${K.many} (${bank.size})`;
@@ -341,19 +378,52 @@
     show("home");
   }
 
+  // A click toggles a region (the "World" button picks everything, or nothing if everything is
+  // picked); a double click plays just that region straight away.
   function regionButton(label, codes, cls) {
     const b = document.createElement("button");
+    b.type = "button";
     if (cls) b.className = cls;
-    if (K.connect) {
-      const n = connectPairs(codes).length;
-      b.innerHTML = `<strong>${label}</strong><span>${n ? `${n} puzzles` : "no land routes"}</span>`;
-      b.disabled = !n;
-      b.onclick = () => startConnect(label, codes);
-      return b;
-    }
-    b.innerHTML = `<strong>${label}</strong><span>${codes.length} ${K.many}</span>`;
-    b.onclick = () => startSession(label, codes);
+    b.dataset.region = label;
+    const n = K.connect ? connectPairs(codes).length : codes.length;
+    const count = K.connect ? (n ? `${n} puzzles` : "no land routes") : `${n} ${K.many}`;
+    b.innerHTML = `<strong>${label}</strong><span>${count}</span>`;
+    b.onclick = () => {
+      const all = Object.keys(K.regions);
+      if (label === K.all) picked = new Set(picked.size === all.length ? [] : all);
+      else picked.has(label) ? picked.delete(label) : picked.add(label);
+      save(key("regions"), [...picked]);
+      renderPicked();
+    };
+    b.ondblclick = () => {
+      picked = new Set(label === K.all ? Object.keys(K.regions) : [label]);
+      save(key("regions"), [...picked]);
+      renderPicked();
+      startPicked();
+    };
     return b;
+  }
+
+  function renderPicked() {
+    const all = Object.keys(K.regions).length;
+    for (const b of $("region-list").querySelectorAll("button")) {
+      const r = b.dataset.region;
+      b.setAttribute("aria-pressed", String(r === K.all ? picked.size === all : picked.has(r)));
+    }
+    const codes = pickedCodes();
+    const n = K.connect ? connectPairs(codes).length : codes.length;
+    const sb = $("start-btn");
+    sb.disabled = !n;
+    sb.textContent = !picked.size ? "Pick a region to start"
+      : !n ? "No land routes here"
+      : `Start · ${sessionLabel()} · ${n} ${K.connect ? "puzzles" : K.many}`;
+  }
+
+  function startPicked() {
+    const codes = pickedCodes();
+    if (!codes.length) return;
+    if (K.connect) startConnect(sessionLabel(), codes);
+    else startSession(sessionLabel(), codes);
   }
 
   // ---- Correct-answer feedback: sound, confetti, streaks ----
@@ -427,10 +497,11 @@
     playCorrect();
     const click = session.answer === "click";
     // The map only gets the soft glow: scaling it would redraw the whole map every frame.
-    replay(click ? $("map-wrap") : $("flag-wrap"), tier === "retry" || click ? "glow-soft" : "glow");
+    const stage = click || K.city ? $("map-wrap") : $("flag-wrap");
+    replay(stage, tier === "retry" || click || K.city ? "glow-soft" : "glow");
     replay($("reveal"), "pop");
     // On a map the burst comes from the place you clicked.
-    confetti({ retry: 0, ok: 10, fast: 22, big: 40 }[tier], click && mapView.hitEl ? mapView.hitEl : undefined);
+    confetti({ retry: 0, ok: 10, fast: 22, big: 40 }[tier], click && mapView.hitEl ? mapView.hitEl : stage);
     updateStreak(true);
   }
 
@@ -463,15 +534,15 @@
       label,
       codes: codes.slice(),
       speedrun: opts.speedrun,
-      grid: !K.map && opts.layout === "grid",
+      grid: canGrid() && opts.layout === "grid",
       answer: K.map ? "click" : opts.answer,
       borders: opts.borders,
       highlight: opts.highlight,
-      rotate: K.shape ? opts.rotate : "none",
+      rotate: canRotate() ? opts.rotate : "none",
       spin: opts.spin,
       tag: variantTag(),
-      infinite: opts.infinite && !opts.speedrun && (K.map || opts.layout !== "grid"),
-      weighted: opts.weighted && !opts.speedrun && (K.map || opts.layout !== "grid"),
+      infinite: opts.infinite && !opts.speedrun && (!canGrid() || opts.layout !== "grid"),
+      weighted: opts.weighted && !opts.speedrun && (!canGrid() || opts.layout !== "grid"),
       rounds: [],          // summaries of finished rounds
       missed: new Set(),   // everything missed across the session
       seen: new Set(),     // flags answered or skipped at least once this session
@@ -493,15 +564,17 @@
     const mode = session.answer;
     $("guess-box").hidden = mode !== "dropdown" && mode !== "type";
     $("mc").hidden = mode !== "mc";
-    $("flag-wrap").hidden = mode === "click";
+    $("flag-wrap").hidden = mode === "click" || !!K.city;
     $("flag-wrap").after($("map-wrap")); // the connect screen borrows it
-    $("map-wrap").hidden = $("map-prompt").hidden = mode !== "click";
+    $("map-wrap").hidden = mode !== "click" && !K.city;
+    $("map-prompt").hidden = mode !== "click";
+    $("city-views").hidden = $("city-credit").hidden = !K.city;
     $("answer-note").textContent = {
-      dropdown: `↑ ↓ to pick a ${K.noun} · Enter to submit · ↓ on an empty box lists all ${K.nouns}`,
+      dropdown: `↑ ↓ or Tab to pick a ${K.noun} · Enter to submit · ↓ on an empty box lists all ${K.nouns}`,
       type: "Type the full name · Enter to submit",
       mc: "Click an answer or press 1–4 · Esc to skip",
       click: "Scroll or pinch to zoom · drag to move · Esc to skip",
-    }[mode];
+    }[mode] + (K.city ? " · drag and zoom the map" : "");
     show("game");
     if (mode === "click") setupMap(session.codes);
     startRound();
@@ -554,6 +627,8 @@
       clearMapMarks(false);
       round.wrongClicks = 0;
       $("map-prompt").textContent = COUNTRIES[round.current].name;
+    } else if (K.city) {
+      showCity(round.current);
     } else {
       $("flag").src = flagUrl(round.current);
       applyRotation($("flag"));
@@ -653,7 +728,9 @@
     renderLiveChart();
     // Stop the clock on the last answer, not after the reveal pause; speed runs also advance faster.
     if (session.speedrun && round.queue.length === 0) session.runEnd = at;
-    setTimeout(next, session.speedrun ? 150 : 600);
+    // A speed run goes straight to the next question.
+    if (session.speedrun) next();
+    else setTimeout(next, 600);
   }
 
   function skip() {
@@ -698,22 +775,36 @@
     g.classList.add("shake");
   }
 
-  // ---- Shape rotation ----
+  // ---- Rotation ----
   // Rotated images are drawn in a square (see .rot in the CSS) so a turned shape never overflows.
-  function applyRotation(img) {
+  // `cover` is for city map pictures, which fill their square: they grow instead, so the corners
+  // never show past the edge of the map (the box clips them).
+  function applyRotation(el, cover = false) {
     const r = session.rotate;
-    img.classList.toggle("rot", r !== "none");
-    img.classList.toggle("spin", r === "spin");
-    img.style.removeProperty("animation-delay");
+    el.classList.toggle("rot", r !== "none");
+    el.classList.toggle("spin", r === "spin");
+    el.style.removeProperty("animation-delay");
     if (r === "none") return;
-    // Any angle can need the square's diagonal, so those shrink to fit.
-    img.style.setProperty("--rot-scale", r === "right" ? 1 : 0.7);
-    if (r === "right") img.style.setProperty("--angle", `${90 * (1 + Math.floor(Math.random() * 3))}deg`);
-    if (r === "any") img.style.setProperty("--angle", `${Math.floor(Math.random() * 360)}deg`);
+    const deg = r === "right" ? 90 * (1 + Math.floor(Math.random() * 3)) : Math.floor(Math.random() * 360);
+    // Any angle can need the square's diagonal, so those shrink to fit (or grow, to cover).
+    const a = (deg * Math.PI) / 180;
+    const scale = r === "right" ? 1 : !cover ? 0.7 : r === "spin" ? Math.SQRT2 : Math.abs(Math.cos(a)) + Math.abs(Math.sin(a));
+    el.style.setProperty("--rot-scale", scale);
+    el.style.setProperty("--angle", `${deg}deg`);
     if (r === "spin") {
       const dur = 360 / session.spin;
-      img.style.setProperty("--spin-dur", `${dur}s`);
-      img.style.animationDelay = `${-Math.random() * dur}s`; // start at a random angle
+      el.style.setProperty("--spin-dur", `${dur}s`);
+      el.style.animationDelay = `${-Math.random() * dur}s`; // start at a random angle
+    }
+  }
+
+  function copyRotation(from, to) {
+    to.classList.toggle("rot", from.classList.contains("rot"));
+    to.classList.toggle("spin", from.classList.contains("spin"));
+    for (const prop of ["--angle", "--rot-scale", "--spin-dur", "animation-delay"]) {
+      const v = from.style.getPropertyValue(prop);
+      if (v) to.style.setProperty(prop, v);
+      else to.style.removeProperty(prop);
     }
   }
 
@@ -722,7 +813,7 @@
   // The view is the SVG viewBox, kept at the box's aspect ratio. Changing it redraws every border, so
   // while you drag or zoom the drawn map is just moved with a CSS transform (cheap), and the viewBox
   // catches up once the gesture pauses. `vb` is what's drawn; `target` is where the view is heading.
-  const mapView = { name: null, svg: null, vb: null, target: null, home: null, hitEl: null, timer: 0 };
+  const mapView = { name: null, svg: null, rot: null, vb: null, target: null, home: null, hitEl: null, timer: 0 };
   const SETTLE_MS = 150;
   const SVG_NS = "http://www.w3.org/2000/svg";
   const DOT_PX = 5; // dot radius on screen, whatever the zoom
@@ -770,13 +861,20 @@
     // Match the box's aspect ratio, growing whichever side is short.
     if (w / h < aspect) { const nw = h * aspect; x -= (nw - w) / 2; w = nw; }
     else { const nh = w / aspect; y -= (nh - h) / 2; h = nh; }
-    // Zoom limits: the whole map at most, 1/60 of its width at least.
-    const maxW = Math.max(m.w, m.h * aspect) * 1.05, minW = m.w / 60;
+    // Zoom limits: the whole map at most, 1/60 of its width at least. A city map (`cover`) has nothing
+    // around it, so the view stays inside it and can't zoom in as far (it would just get blurry).
+    const maxW = m.cover ? Math.min(m.w, m.h * aspect) : Math.max(m.w, m.h * aspect) * 1.05;
+    const minW = m.cover ? m.w / 10 : m.w / 60;
     const k = Math.min(Math.max(w, minW), maxW) / w;
     if (k !== 1) { x += (w - w * k) / 2; y += (h - h * k) / 2; w *= k; h *= k; }
-    // Keep the centre over the map.
-    x = Math.min(Math.max(x + w / 2, 0), m.w) - w / 2;
-    y = Math.min(Math.max(y + h / 2, 0), m.h) - h / 2;
+    if (m.cover) {
+      x = Math.min(Math.max(x, 0), m.w - w);
+      y = Math.min(Math.max(y, 0), m.h - h);
+    } else {
+      // Keep the centre over the map.
+      x = Math.min(Math.max(x + w / 2, 0), m.w) - w / 2;
+      y = Math.min(Math.max(y + h / 2, 0), m.h) - h / 2;
+    }
     mapView.target = [x, y, w, h];
     clearTimeout(mapView.timer);
     if (now || !mapView.vb) return drawView();
@@ -797,13 +895,38 @@
     for (const dot of svg.querySelectorAll(".dot")) dot.setAttribute("r", DOT_PX * k);
   }
 
+  // A rotated city map sits in mapView.rot, a square as wide as the box's diagonal (so it covers the
+  // box at any angle), turned with a CSS transform. Screen moves are turned back by that angle.
+  function rotAngle() {
+    if (!mapView.rot) return 0;
+    const m = getComputedStyle(mapView.rot).transform.match(/^matrix\(([^,]+),\s*([^,]+)/);
+    return m ? Math.atan2(Number(m[2]), Number(m[1])) : 0;
+  }
+  // A screen vector -> the same vector in the (unrotated) SVG's pixels.
+  function unrotate(dx, dy, a = rotAngle()) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [c * dx + s * dy, -s * dx + c * dy];
+  }
+  function sizeRot() {
+    if (!mapView.rot) return;
+    const wrap = $("map-wrap");
+    mapView.rot.style.setProperty("--d", `${Math.ceil(Math.hypot(wrap.clientWidth, wrap.clientHeight)) + 2}px`);
+  }
+
   // Zoom by `f` (<1 = in) keeping the map point under (clientX, clientY) still.
   function zoomAt(clientX, clientY, f) {
     const [x, y, w, h] = mapView.target;
     // Measure the box, not the SVG, which may be mid-transform.
     const wrap = $("map-wrap"), rect = wrap.getBoundingClientRect();
-    const px = x + ((clientX - rect.left - wrap.clientLeft) / wrap.clientWidth) * w;
-    const py = y + ((clientY - rect.top - wrap.clientTop) / wrap.clientHeight) * h;
+    let lx = clientX - rect.left - wrap.clientLeft, ly = clientY - rect.top - wrap.clientTop;
+    let bw = wrap.clientWidth, bh = wrap.clientHeight;
+    if (mapView.rot) {
+      const d = mapView.rot.offsetWidth;
+      const [ux, uy] = unrotate(lx - bw / 2, ly - bh / 2);
+      [lx, ly, bw, bh] = [d / 2 + ux, d / 2 + uy, d, d];
+    }
+    const px = x + (lx / bw) * w;
+    const py = y + (ly / bh) * h;
     setView(px - (px - x) * f, py - (py - y) * f, w * f, h * f);
   }
 
@@ -819,11 +942,15 @@
       e.preventDefault();
       zoomAt(e.clientX, e.clientY, Math.exp(e.deltaY * 0.0015));
     }, { passive: false });
+    // Drag with any mouse button (or a finger) to move; a left click or a tap that barely moves picks.
+    wrap.addEventListener("contextmenu", (e) => { if (!e.target.closest(".city-credit")) e.preventDefault(); });
     wrap.addEventListener("pointerdown", (e) => {
-      if (e.target.closest(".map-zoom") || !mapView.vb) return;
+      if (e.target.closest(".map-zoom, .city-views, .city-credit") || !mapView.vb) return;
+      if (e.pointerType === "mouse" && e.button > 2) return;
+      if (e.pointerType === "mouse") e.preventDefault(); // no middle-button autoscroll
       try { wrap.setPointerCapture(e.pointerId); } catch {} // keep getting moves when the pointer leaves the map
       audioReady(); // start the sound engine now, not on the first correct click (that takes a while)
-      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, picks: e.pointerType !== "mouse" || e.button === 0 });
       if (pointers.size === 1) moved = 0;
       if (pointers.size === 2) pinch = spread();
     });
@@ -838,7 +965,8 @@
       if (pointers.size === 1) {
         const [x, y, w, h] = mapView.target;
         const k = w / mapView.svg.clientWidth;
-        setView(x - dx * k, y - dy * k, w, h);
+        const [ux, uy] = unrotate(dx, dy);
+        setView(x - ux * k, y - uy * k, w, h);
       } else if (pointers.size === 2) {
         const d = spread();
         const [a, b] = [...pointers.values()];
@@ -849,9 +977,10 @@
     });
     wrap.addEventListener("pointerleave", () => setHover(null));
     const release = (e) => {
+      const p = pointers.get(e.pointerId);
       if (!pointers.delete(e.pointerId)) return;
       try { wrap.releasePointerCapture(e.pointerId); } catch {}
-      if (e.type === "pointerup" && pointers.size === 0 && moved < 6) {
+      if (e.type === "pointerup" && pointers.size === 0 && moved < 6 && p.picks) {
         // Pointer capture retargets events, so find what's under the pointer directly.
         const el = document.elementFromPoint(e.clientX, e.clientY)?.closest("#map-svg [data-code]");
         if (el) mapClick(el);
@@ -862,7 +991,11 @@
     $("zoom-in").onclick = () => zoomAt(...center(), 1 / 1.6);
     $("zoom-out").onclick = () => zoomAt(...center(), 1.6);
     $("zoom-reset").onclick = () => setView(...mapView.home, true);
-    window.addEventListener("resize", () => { if (mapView.vb && !$("map-wrap").hidden) setView(...mapView.target, true); });
+    window.addEventListener("resize", () => {
+      if (!mapView.vb || $("map-wrap").hidden) return;
+      sizeRot();
+      setView(...mapView.target, true);
+    });
   }
 
   // Colour the place straight away; the bookkeeping (stats, saving, sound, confetti, charts) waits
@@ -905,6 +1038,128 @@
   function clearMapMarks(all) {
     const cls = ["right", "wrong", "hint", "answer", ...(all ? ["found", "from", "to", "route", "cx-on", "cx-near", "cx-far"] : [])];
     for (const el of mapView.svg.querySelectorAll("[data-code]")) el.classList.remove(...cls);
+  }
+
+  // ---- City grid: name the city from its streets ----
+  // citymaps/<id>.svg (tools/build_city_maps.py) is the city's streets, water and parks with no labels.
+  // It's shown in the map viewer above, with the satellite and terrain pictures under it in the same
+  // SVG; the view buttons switch which layers show (see #map-svg.city in the CSS). A picture is only
+  // downloaded once its view is picked.
+  const CITY_CREDITS = {
+    osm: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    eox: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2016</a> by EOX (Copernicus Sentinel data)',
+    usgs: 'Imagery: <a href="https://www.usgs.gov/" target="_blank" rel="noopener">USGS</a>',
+    terrain: 'Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Mapzen, AWS</a>',
+  };
+  const cityFiles = new Map(); // map id -> Promise of the parsed SVG
+  const cityId = (code) => CITIES[K.city].info[code][0];
+
+  function loadCity(code) {
+    const id = cityId(code);
+    if (!cityFiles.has(id)) {
+      const p = fetch(`citymaps/${id}.svg`)
+        .then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status))))
+        .then((text) => new DOMParser().parseFromString(text, "image/svg+xml").documentElement);
+      p.catch(() => cityFiles.delete(id)); // try again next time
+      cityFiles.set(id, p);
+    }
+    return cityFiles.get(id);
+  }
+
+  // Grid pictures: a light copy of the street map, a small satellite picture, or the terrain one.
+  function cityThumb(code, view = opts.mapType) {
+    const id = cityId(code);
+    return view === "sat" ? `citymaps/${id}-sat-thumb.webp` : view === "terrain" ? `citymaps/${id}-terrain-thumb.svg` : `citymaps/${id}-thumb.svg`;
+  }
+  function setGridView(view) {
+    if (!["map", "sat", "terrain"].includes(view)) view = "map";
+    opts.mapType = view;
+    save(key("options"), opts);
+    for (const b of $("grid-views").querySelectorAll("button")) b.setAttribute("aria-pressed", b.dataset.view === view);
+    for (const img of $("grid-list").querySelectorAll(".city-thumb img")) {
+      img.dataset.fallback = "";
+      img.src = cityThumb(img.closest(".cell").dataset.code, view);
+    }
+    $("grid-credit").innerHTML = view === "sat" ? `${CITY_CREDITS.eox} · ${CITY_CREDITS.usgs}`
+      : view === "terrain" ? `${CITY_CREDITS.terrain} · ${CITY_CREDITS.osm}` : CITY_CREDITS.osm;
+  }
+
+  function preloadCity(code) {
+    loadCity(code).catch(() => {});
+    if (opts.mapType !== "map") new Image().src = `citymaps/${cityId(code)}-${opts.mapType}.webp`;
+  }
+
+  async function showCity(code) {
+    const r = round;
+    const doc = await loadCity(code).catch(() => null);
+    if (round !== r || r.current !== code) return; // moved on while it loaded
+    drawCity(code, doc);
+    setCityView(opts.mapType);
+    r.shownAt = performance.now(); // the clock starts when the map is up
+    if (r.queue[0]) preloadCity(r.queue[0]);
+  }
+
+  // Put a city's map in the viewer. `rotFrom` = an element whose rotation to copy (the zoom view
+  // keeps the grid picture's angle); otherwise a new random one is picked.
+  function drawCity(code, doc, rotFrom = null) {
+    const id = cityId(code);
+    mapView.svg?.remove();
+    mapView.rot?.remove();
+    mapView.rot = null;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.id = "map-svg";
+    svg.classList.add("city");
+    svg.dataset.id = id;
+    svg.dataset.sat = doc?.getAttribute("data-sat") || "";
+    const S = 2000; // every city map's viewBox is 0 0 2000 2000
+    svg.innerHTML = `<image class="c-sat" width="${S}" height="${S}" preserveAspectRatio="none"/>` +
+      `<image class="c-terrain" width="${S}" height="${S}" preserveAspectRatio="none"/><g class="c-vec"></g>`;
+    const g = svg.querySelector(".c-vec");
+    if (doc) {
+      for (const el of doc.children) if (el.localName !== "style") g.append(document.importNode(el, true));
+    } else {
+      g.innerHTML = `<rect class="c-land" width="${S}" height="${S}"/>` +
+        `<text x="1000" y="1000" text-anchor="middle" font-size="60">This map hasn't been drawn yet</text>`;
+    }
+    if (session.rotate !== "none") {
+      mapView.rot = document.createElement("div");
+      mapView.rot.className = "map-rot";
+      mapView.rot.append(svg);
+      if (rotFrom) copyRotation(rotFrom, mapView.rot);
+      else applyRotation(mapView.rot);
+      $("map-wrap").prepend(mapView.rot);
+      sizeRot();
+    } else {
+      $("map-wrap").prepend(svg);
+    }
+    mapView.svg = svg;
+    mapView.name = `city:${id}`;
+    (window.MAPS ||= {})[mapView.name] = { w: S, h: S, cover: true };
+    mapView.home = [0, 0, S, S];
+    mapView.vb = null;
+    setView(...mapView.home, true);
+  }
+
+  // `view` is what the player picked; it's remembered even for a city that has no satellite picture
+  // (a few small islands), which shows its street map instead.
+  function setCityView(view) {
+    if (!["map", "sat", "terrain"].includes(view)) view = "map";
+    opts.mapType = view;
+    save(key("options"), opts);
+    const svg = mapView.svg;
+    if (!svg?.classList.contains("city")) return;
+    const noSat = svg.dataset.sat === "";
+    if (view === "sat" && noSat) view = "map";
+    for (const b of $("city-views").querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", b.dataset.view === view);
+      b.disabled = b.dataset.view === "sat" && noSat;
+      b.title = b.disabled ? "No satellite picture of this city" : "";
+    }
+    svg.dataset.view = view;
+    const img = svg.querySelector(`.c-${view}`);
+    if (img && !img.getAttribute("href")) img.setAttribute("href", `citymaps/${svg.dataset.id}-${view}.webp`);
+    $("city-credit").innerHTML = view === "sat" ? CITY_CREDITS[svg.dataset.sat]
+      : view === "terrain" ? `${CITY_CREDITS.terrain} · ${CITY_CREDITS.osm}` : CITY_CREDITS.osm;
   }
 
   // ---- Connect: join two places with a chain of land neighbours ----
@@ -1120,27 +1375,51 @@
     const list = $("grid-list");
     parkSuggestions();
     list.innerHTML = "";
+    list.classList.toggle("city", !!K.city);
+    $("grid-views").hidden = $("grid-credit").hidden = !K.city;
     for (const code of shuffle(s.codes)) list.append(gridCell(code));
+    if (K.city) setGridView(opts.mapType);
     $("grid-region").textContent = s.label + (s.tag ? ` · ${s.tag}` : "");
     $("grid-best").textContent = bestText(s);
     $("grid-end-btn").textContent = s.speedrun ? "Give up" : "Finish";
     updateGridHud();
     show("grid");
     startRunClock("grid-time");
-    list.querySelector("input, button")?.focus();
+    cellFocus(list.querySelector(".cell"))?.focus();
   }
 
   function gridCell(code) {
     const li = document.createElement("li");
     li.className = "cell";
     li.dataset.code = code;
-    li.innerHTML = `<div class="cell-img rot-box"><img alt=""></div>`;
+    li.innerHTML = `<div class="cell-img rot-box" title="Larger view"><img alt="">` +
+      `<button type="button" class="cell-zoom" tabindex="-1" aria-label="Larger view">🔍</button></div>`;
+    li.querySelector(".cell-img").onclick = () => openZoom(li);
     const img = li.querySelector("img");
-    img.src = flagUrl(code);
-    applyRotation(img);
+    if (K.city) {
+      img.parentElement.classList.add("city-thumb");
+      img.loading = "lazy";
+      img.decoding = "async";
+      // A few small islands have no satellite picture: show their street map instead.
+      img.onerror = () => {
+        if (img.dataset.fallback) return;
+        img.dataset.fallback = "1";
+        img.src = cityThumb(code, "map");
+      };
+      img.src = cityThumb(code);
+      applyRotation(img, true);
+    } else {
+      img.src = flagUrl(code);
+      applyRotation(img);
+    }
     if (session.answer === "mc") {
       const box = document.createElement("div");
       box.className = "cell-mc";
+      box.addEventListener("keydown", (e) => {
+        if (!e.key.startsWith("Arrow")) return;
+        e.preventDefault();
+        moveCell(li, e.key);
+      });
       for (const c of choicesFor(code)) {
         const b = document.createElement("button");
         b.textContent = c.name;
@@ -1157,10 +1436,15 @@
       input.spellcheck = false;
       input.setAttribute("aria-label", `${cap(K.one)} answer`);
       const matches = (text) => COUNTRIES[code].answers.has(normalize(text));
-      input.addEventListener("input", () => {
-        if (matches(input.value)) gridCorrect(li);
-        else updateSuggestions();
+      // Arrow keys in an empty box move to the next box that way (before the dropdown sees them).
+      input.addEventListener("keydown", (e) => {
+        if (input.value || !e.key.startsWith("Arrow")) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        moveCell(li, e.key);
       });
+      // Nothing is checked while typing; Enter submits (see the single-question box below).
+      input.addEventListener("input", updateSuggestions);
       attachSuggestions(input, (text) => {
         if (!text.trim()) focusNextCell(li);
         else if (matches(text)) gridCorrect(li);
@@ -1172,11 +1456,35 @@
     return li;
   }
 
+  const cellFocus = (li) => li?.querySelector("input, .cell-mc button:not(:disabled)");
+
+  // Left/right: the previous/next unanswered box in reading order. Up/down: the nearest one in the
+  // row above/below, closest to straight up or down.
+  function moveCell(li, key) {
+    const open = [...$("grid-list").querySelectorAll(".cell:not(.done)")];
+    let target = null;
+    if (key === "ArrowLeft" || key === "ArrowRight") {
+      const i = open.indexOf(li);
+      target = open[key === "ArrowRight" ? i + 1 : i - 1];
+    } else {
+      const r0 = li.getBoundingClientRect(), down = key === "ArrowDown";
+      let best = Infinity;
+      for (const c of open) {
+        const r = c.getBoundingClientRect();
+        const dy = r.top - r0.top, dx = Math.abs(r.left - r0.left);
+        if (down ? dy < r0.height / 2 : dy > -r0.height / 2) continue;
+        const score = Math.round(Math.abs(dy) / r0.height) * 1e6 + dx;
+        if (score < best) { best = score; target = c; }
+      }
+    }
+    cellFocus(target)?.focus();
+  }
+
   function focusNextCell(li) {
     const open = [...$("grid-list").querySelectorAll(".cell:not(.done)")];
     if (!open.length) return;
     const after = open.find((x) => li.compareDocumentPosition(x) & Node.DOCUMENT_POSITION_FOLLOWING);
-    (after || open[0]).querySelector("input, button:not(:disabled)")?.focus();
+    cellFocus(after || open[0])?.focus();
   }
 
   function gridCorrect(li) {
@@ -1265,6 +1573,58 @@
     $("slow-list").innerHTML = "";
     show("results");
     rb.hidden ? $("again-btn").focus() : rb.focus();
+  }
+
+  // ---- Grid: larger view of one picture ----
+  // Click a picture (or its 🔍) to see it big; click outside it or press Esc to go back. City maps
+  // open in the full map viewer (drag, zoom, map type); the rotation matches the grid picture.
+  let zoomCell = null;
+  function openZoom(li) {
+    const dlg = $("zoom-dialog"), body = $("zoom-body"), img = li.querySelector(".cell-img img");
+    zoomCell = li;
+    body.innerHTML = "";
+    if (K.city) {
+      const wrap = $("map-wrap");
+      body.append(wrap);
+      wrap.hidden = false;
+      $("city-views").hidden = $("city-credit").hidden = false;
+      dlg.showModal();
+      const code = li.dataset.code;
+      loadCity(code).catch(() => null).then((doc) => {
+        if (zoomCell !== li || !dlg.open) return;
+        drawCity(code, doc, session.rotate !== "none" ? img : null);
+        setCityView(opts.mapType);
+      });
+    } else {
+      const box = document.createElement("div");
+      box.className = "zoom-img rot-box";
+      const big = document.createElement("img");
+      big.alt = "";
+      big.src = img.src;
+      copyRotation(img, big);
+      box.append(big);
+      body.append(box);
+      dlg.showModal();
+    }
+  }
+  function wireZoom() {
+    const dlg = $("zoom-dialog");
+    let downOutside = false;
+    dlg.addEventListener("pointerdown", (e) => { downOutside = e.target === dlg; });
+    dlg.addEventListener("click", (e) => { if (e.target === dlg && downOutside) dlg.close(); });
+    $("zoom-close").onclick = () => dlg.close();
+    dlg.addEventListener("close", () => {
+      const li = zoomCell;
+      zoomCell = null;
+      if (K.city) {
+        const wrap = $("map-wrap");
+        wrap.hidden = true;
+        $("flag-wrap").after(wrap);
+        // The map type may have been changed in the larger view.
+        if (round?.grid) setGridView(opts.mapType);
+      }
+      if (li?.isConnected) (cellFocus(li) || cellFocus(li.parentElement.querySelector(".cell:not(.done)")))?.focus();
+    });
   }
 
   // ---- Speed run ----
@@ -1359,7 +1719,13 @@
     const tag = variantTag();
     $("records-variant").hidden = !tag;
     $("records-variant").textContent = tag;
-    const rows = [K.all, ...Object.keys(K.regions)].map((label) => {
+    // Mixes of regions only get a row once they have a record.
+    const suffix = tag ? ` · ${tag}` : "";
+    const mixes = Object.keys(records)
+      .filter((k) => k.endsWith(suffix))
+      .map((k) => k.slice(0, k.length - suffix.length))
+      .filter((label) => label.includes(" + ") && !label.includes(" · ") && isRanked(label));
+    const rows = [K.all, ...Object.keys(K.regions), ...mixes].map((label) => {
       const rec = records[recKey(label, tag)];
       return `<tr><th scope="row">${label}</th>` +
         (rec
@@ -1614,8 +1980,15 @@
   function updateSuggestions(showAllWhenEmpty = false) {
     const q = searchKey(sugInput.value);
     if (session?.answer !== "dropdown" || (!q && !showAllWhenEmpty)) return hideSuggestions();
+    // Names that start with what's typed come first, then other names that do ("washington" lists
+    // Washington before District of Columbia, also called Washington DC), then any match; each
+    // group stays alphabetical.
+    const rank = (c) => (searchKey(c.name).startsWith(q) ? 0 : c.keys.some((k) => k.startsWith(q)) ? 1 : 2);
     suggestions = ALPHABETICAL
-      .filter((c) => !q || c.keys.some((k) => k.includes(q)));
+      .filter((c) => !q || c.keys.some((k) => k.includes(q)))
+      .map((c) => [q ? rank(c) : 0, c])
+      .sort((a, b) => a[0] - b[0])
+      .map(([, c]) => c);
     active = suggestions.length ? 0 : -1;
     renderSuggestions();
   }
@@ -1690,6 +2063,12 @@
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         if (open) setActive(Math.max(active - 1, 0));
+      } else if (e.key === "Tab" && (open || input.value.trim())) {
+        // Tab / Shift+Tab move through the list like ↓ / ↑, wrapping round; Enter picks. With
+        // nothing typed and no list open, Tab moves focus as usual (to the next grid box).
+        e.preventDefault();
+        if (!open) updateSuggestions();
+        else if (suggestions.length) setActive((active + (e.shiftKey ? -1 : 1) + suggestions.length) % suggestions.length);
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (open && active >= 0) choose(active);
@@ -1764,14 +2143,14 @@
 
   // ---- Wiring ----
   const guess = $("guess");
+  // Answers are only checked when submitted (Enter, or picking from the list), never while typing,
+  // so a name can't be typed in bit by bit until it turns green; a wrong submission is a miss.
   guess.addEventListener("input", () => {
     if (!round || round.revealing) return;
-    const c = COUNTRIES[round.current];
-    if (c.answers.has(normalize(guess.value))) return markCorrect(c);
     updateSuggestions();
   });
   attachSuggestions(guess, submitGuess, skip);
-  // Connect: no auto-accept while typing ("Niger" is a prefix of "Nigeria"), so Enter submits.
+  // Connect: Enter submits, as in the quizzes.
   $("cx-guess").addEventListener("input", () => {
     $("cx-guess").classList.remove("shake");
     updateSuggestions();
@@ -1795,6 +2174,13 @@
   });
   for (const id of ["opt-highlight"]) $(id).addEventListener("input", syncOptions);
   wireMap();
+  wireZoom();
+  for (const b of $("city-views").querySelectorAll("button")) b.onclick = () => { setCityView(b.dataset.view); refocus(); };
+  for (const b of $("grid-views").querySelectorAll("button")) b.onclick = () => setGridView(b.dataset.view);
+  $("start-btn").onclick = startPicked;
+  // Panning the city map with a mouse takes focus from the answer box; give it back.
+  const refocus = () => { if (round && !round.grid && !$("guess-box").hidden) guess.focus({ preventScroll: true }); };
+  $("map-wrap").addEventListener("pointerup", (e) => { if (K.city && e.pointerType === "mouse") refocus(); });
   $("grid-end-btn").onclick = () => { if (round?.grid) endGrid(true); };
 
   $("skip-btn").onclick = () => { skip(); guess.focus(); };
