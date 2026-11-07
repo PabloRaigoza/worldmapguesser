@@ -1,19 +1,37 @@
+/* Self-hosted so the site loads nothing from other servers (see About). */
+@font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 300 800; font-display: swap; }
+
 :root {
-  --bg: #f4f5f7;
+  --bg: #eef0f3;
   --card: #ffffff;
-  --text: #1d2330;
+  --raised: #f7f8fa;
+  --text: #1f2329;
   --muted: #6b7280;
-  --accent: #2563eb;
-  --good: #16a34a;
-  --bad: #dc2626;
-  --border: #d9dce3;
+  --accent: #4f6bdc;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--card));
+  --good: #1f9d55;
+  --bad: #d64545;
+  --border: #dde1e7;
+  --edge: #c9ced6;           /* the darker underside of buttons and tiles */
+  --shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 6px 16px -8px rgba(15, 23, 42, .12);
+  --water: #dfe7ef;
+  --land: #b9c2ce;
+  --land-hover: #94a0b0;
+  --land-off: #e8ebef;
+  --map-border: #ffffff;
+  --unseen: #e3e6eb;
+  --i-flag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 21V4M5 4h12l-2.5 4L17 12H5'/%3E%3C/svg%3E");
+  --i-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 4.5c2.6-1.4 4.4 1.2 7 .6 2.8-.6 5.4 1.8 4.2 4.6-.9 2-2.6 2.6-1.8 5.2.9 2.8-1.6 4.8-4.2 3.8-2-.8-3.4.6-5.6-.4-2.6-1.2-3-4-1.8-6.2C6.6 9.8 5.4 6 8 4.5z'/%3E%3C/svg%3E");
+  --i-map: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c3.2 3.4 3.2 14.6 0 18M12 3c-3.2 3.4-3.2 14.6 0 18'/%3E%3C/svg%3E");
+  --i-connect: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5.5' cy='12' r='2.5'/%3E%3Ccircle cx='18.5' cy='5.5' r='2.5'/%3E%3Ccircle cx='18.5' cy='18.5' r='2.5'/%3E%3Cpath d='M7.8 10.9l8.4-4.2M7.8 13.1l8.4 4.2'/%3E%3C/svg%3E");
+  --i-city: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='3'/%3E%3Cpath d='M3 9h18M3 15h18M9 3v18M15 3v18'/%3E%3C/svg%3E");
+  --i-capital: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10l9-6 9 6M5.5 10v8M9.8 10v8M14.2 10v8M18.5 10v8M3 20.5h18'/%3E%3C/svg%3E");
   /* Heatmap: one green hue, light (fast) -> dark (slow); grey = not seen */
   --heat-1: #b7ebb0;
   --heat-2: #7fd277;
   --heat-3: #43ad45;
   --heat-4: #1f7f2c;
   --heat-5: #0b4d17;
-  --unseen: #e3e6ea;
 }
 /* Dark theme: follows the system unless the visitor picked one with the toggle (theme.js sets
    data-theme on <html>). color-scheme also switches form controls and the shape images' colours. */
@@ -21,38 +39,18 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --bg: #12151c;
-    --card: #1c2029;
-    --text: #e8eaf0;
-    --muted: #9aa1ae;
-    --accent: #60a5fa;
-    --good: #4ade80;
-    --bad: #f87171;
-    --border: #2e3442;
-    --unseen: #313744;
-    --water: #172033;
-    --land: #475569;
-    --land-hover: #64748b;
-    --land-off: #2a3344;
-    --map-border: #1c2029;
+    --bg: #14161a; --card: #1e2127; --raised: #252930; --text: #e8eaed; --muted: #9aa0aa; --accent: #7b93f0;
+    --good: #4cc47e; --bad: #ef6b6b; --border: #2e323a; --edge: #0d0f12;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 20px -10px rgba(0, 0, 0, .6);
+    --water: #182029; --land: #4a5260; --land-hover: #636c7b; --land-off: #262b33; --map-border: #1e2127; --unseen: #2c3038;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #12151c;
-  --card: #1c2029;
-  --text: #e8eaf0;
-  --muted: #9aa1ae;
-  --accent: #60a5fa;
-  --good: #4ade80;
-  --bad: #f87171;
-  --border: #2e3442;
-  --unseen: #313744;
-  --water: #172033;
-  --land: #475569;
-  --land-hover: #64748b;
-  --land-off: #2a3344;
-  --map-border: #1c2029;
+  --bg: #14161a; --card: #1e2127; --raised: #252930; --text: #e8eaed; --muted: #9aa0aa; --accent: #7b93f0;
+  --good: #4cc47e; --bad: #ef6b6b; --border: #2e323a; --edge: #0d0f12;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 20px -10px rgba(0, 0, 0, .6);
+  --water: #182029; --land: #4a5260; --land-hover: #636c7b; --land-off: #262b33; --map-border: #1e2127; --unseen: #2c3038;
 }
 
 * { box-sizing: border-box; }
@@ -61,7 +59,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "cv11", "ss01";
 }
 main { max-width: 760px; margin: 0 auto; padding: 32px 16px; }
 main:has(#game:not([hidden])) { max-width: 1440px; padding-top: 20px; }
@@ -360,28 +359,6 @@ button.danger { color: var(--bad); }
 .tooltip strong { display: block; }
 .tooltip .tip-detail { display: block; opacity: .8; }
 
-/* Quiz tabs (hidden while playing) */
-.tabs {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  margin: -12px auto 20px;
-  padding: 4px;
-  width: fit-content;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-.tabs a {
-  padding: 6px 18px;
-  border-radius: 999px;
-  color: var(--muted);
-  text-decoration: none;
-  font-weight: 600;
-}
-.tabs a:hover { color: var(--text); }
-.tabs a.active { background: var(--accent); color: #fff; }
-main:has(#game:not([hidden])) .tabs { display: none; }
 
 /* Correct-answer feedback */
 .flag-wrap { position: relative; }
@@ -445,13 +422,8 @@ main:has(#game:not([hidden])) .tabs { display: none; }
 .records tbody th { position: static; color: var(--text); font-weight: 500; }
 .records td.muted { color: var(--muted); }
 .records td:last-child { color: var(--muted); }
-@media (min-width: 1340px) {
-  .records { position: absolute; top: 20px; right: 20px; width: 300px; margin: 0; }
-}
 #home:not([hidden]) { display: flex; flex-direction: column; }
-@media (max-width: 1339px) {
-  .records { order: 1; width: 100%; margin: 24px auto 0; }
-}
+.records { order: 1; width: 100%; margin: 28px auto 0; }
 .records tbody tr:last-child th { border-bottom: none; }
 
 /* Answer style / layout / rotation pickers */
@@ -495,7 +467,6 @@ img.rot.spin { animation: spin var(--spin-dur, 4s) linear infinite; }
 
 /* Grid layout */
 main:has(#grid:not([hidden])) { max-width: 1440px; padding-top: 20px; }
-main:has(#grid:not([hidden])) .tabs { display: none; }
 .grid-actions { margin: 0 0 16px; }
 .grid-cells {
   list-style: none;
@@ -566,32 +537,9 @@ main:has(#grid:not([hidden])) .tabs { display: none; }
 .cell.glow { animation: glow-soft .45s ease-out; }
 .cell .suggestions { min-width: 200px; max-height: 220px; }
 .cell .suggestions li { padding: 6px 10px; font-size: .9rem; }
-.tabs { flex-wrap: wrap; max-width: 100%; }
-@media (max-width: 520px) { .tabs a { padding: 6px 12px; font-size: .9rem; } }
 
-/* Quiz tabs, grouped World / US states */
-.tab-group {
-  align-self: center;
-  padding: 0 6px 0 12px;
-  font-size: .7rem;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-/* Each group stays on one line; the two groups wrap onto separate lines when there isn't room. */
-.tab-set { display: flex; gap: 2px; align-items: center; }
-.tabs { row-gap: 2px; border-radius: 22px; }
-.tabs a { padding: 6px 14px; }
 
 /* Map quiz */
-:root {
-  --water: #dbeafe;
-  --land: #b4c0d0;
-  --land-hover: #8796ab;
-  --land-off: #e6eaf0;
-  --map-border: #ffffff;
-}
 .map-prompt {
   text-align: center;
   font-size: 1.6rem;
@@ -718,7 +666,6 @@ main:has(#grid:not([hidden])) .tabs { display: none; }
 
 /* Connect */
 main:has(#connect:not([hidden])) { max-width: 1100px; padding-top: 20px; }
-main:has(#connect:not([hidden])) .tabs { display: none; }
 #connect .map-wrap { height: clamp(240px, calc(100vh - 400px), 620px); }
 .connect-prompt { font-weight: 500; }
 .cx-end { font-weight: 700; color: var(--accent); }
@@ -790,3 +737,132 @@ main:has(#connect:not([hidden])) .site-footer { display: none; }
 .theme-toggle:hover { color: var(--text); border-color: var(--border); }
 .theme-toggle svg { width: 18px; height: 18px; }
 .site-footer .theme-toggle { vertical-align: middle; margin-left: 8px; }
+
+/* ---- Look: neutral, a light game feel (raised buttons that press in, chips, an icon per quiz) ---- */
+h1 { font-weight: 800; letter-spacing: -.03em; }
+h2 { font-weight: 750; letter-spacing: -.02em; }
+.sub { color: var(--muted); }
+
+/* Quiz menu: an icon per quiz */
+.tabs a { display: inline-flex; align-items: center; gap: 8px; }
+.tabs a::before {
+  content: ""; flex: none; width: 18px; height: 18px; background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+}
+.tabs a[data-kind$="flags"] { --icon: var(--i-flag); }
+.tabs a[data-kind$="shapes"] { --icon: var(--i-shape); }
+.tabs a[data-kind$="map"] { --icon: var(--i-map); }
+.tabs a[data-kind$="connect"] { --icon: var(--i-connect); }
+.tabs a[data-kind="cities"] { --icon: var(--i-city); }
+.tabs a[data-kind$="capitals"] { --icon: var(--i-capital); }
+.tabs a.active { background: var(--accent-soft); color: var(--accent); }
+.tab-group { color: var(--muted); }
+
+/* Buttons: a small raised edge that presses in */
+button {
+  border-radius: 12px; border: 1px solid var(--border); background: var(--card); font-weight: 600;
+  box-shadow: 0 2px 0 var(--edge); transition: transform .06s, box-shadow .06s, border-color .15s;
+}
+button:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 var(--edge); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000); }
+button.ghost { background: transparent; box-shadow: none; }
+button:disabled { box-shadow: none; }
+.theme-toggle { box-shadow: none; }
+
+/* Home: regions as selectable tiles */
+.regions { gap: 12px; }
+.regions button { border-radius: 16px; padding: 16px 18px; box-shadow: 0 3px 0 var(--edge); position: relative; }
+.regions button strong { font-weight: 700; }
+.regions button[aria-pressed="true"] {
+  background: var(--accent-soft); border-color: var(--accent); box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000);
+}
+.regions button[aria-pressed="true"] strong::before { content: none; }
+.regions button[aria-pressed="true"]::after {
+  content: "✓"; position: absolute; top: 12px; right: 14px; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; font-size: .75rem; font-weight: 800; background: var(--accent); color: #fff;
+}
+.start-row button { border-radius: 14px; padding: 14px 32px; font-size: 1.08rem; }
+
+.options { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px; box-shadow: var(--shadow); }
+.choice-label { font-weight: 600; }
+.seg { border-radius: 12px; background: var(--raised); border-color: var(--border); }
+.seg span { border-radius: 9px; font-weight: 500; }
+.seg input:checked + span { background: var(--card); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 0 0 1px var(--border); font-weight: 650; }
+input[type=checkbox], input[type=range] { accent-color: var(--accent); }
+.records { border-radius: 16px; box-shadow: var(--shadow); }
+.more-quizzes a { border-radius: 10px; }
+.practice { border-color: var(--bad); color: var(--bad); }
+
+/* Game */
+.hud { align-items: center; }
+.hud > span:not(:empty) { background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: .9rem; }
+.hud > span.streak:not(:empty) { color: #e8590c; }
+.flag-wrap, .map-wrap, .heatmap-panel, .rounds-chart, .table-wrap, .cell, .missed li, .zoom-img {
+  border-radius: 18px; box-shadow: var(--shadow);
+}
+.flag-wrap { border-radius: 20px; }
+.map-wrap { border-radius: 20px; }
+#speed-time, #grid-time { font-weight: 800; letter-spacing: -.02em; }
+#guess, #cx-guess { border-radius: 14px; font-weight: 500; box-shadow: var(--shadow); }
+.cell input { border-radius: 10px; }
+.suggestions { border-radius: 14px; }
+.suggestions li { border-radius: 9px; }
+.mc .choice { border-radius: 14px; box-shadow: 0 3px 0 var(--edge); }
+.mc .choice kbd { border-radius: 6px; }
+.city-views { border-radius: 12px; box-shadow: var(--shadow); }
+.city-views button { box-shadow: none; transform: none !important; }
+.map-zoom button { border-radius: 10px; }
+.cell-zoom { box-shadow: none; }
+.cx-list li { border-radius: 8px; }
+.actions:not(:has(> :not([hidden]))) { display: none; }
+select {
+  font: inherit; font-weight: 600; padding: 9px 12px; border-radius: 12px; color: var(--text);
+  background: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 0 var(--edge);
+}
+
+/* ---- Quiz menu: a sidebar on the left, grouped World / US states / City grid. While playing it
+   shrinks to an icon rail (the links keep their title for hover); phones get a scrolling strip
+   across the top instead. ---- */
+.tabs { display: flex; background: var(--card); }
+.tab-set { display: flex; gap: 2px; align-items: center; }
+.tab-group { font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.tabs a { position: relative; padding: 9px 12px; border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 550; }
+.tabs a:hover { background: var(--raised); }
+/* A green check once the quiz's biggest category (World, All states…) has a finished speed run (app.js sets .done). */
+.tabs a.done::after {
+  content: ""; flex: none; width: 16px; height: 16px; margin-left: auto; border-radius: 50%;
+  background: var(--good) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 8.3l2.3 2.3 4.7-4.9'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (min-width: 900px) {
+  body:has(.tabs) { padding-left: 236px; }
+  .tabs {
+    position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: 236px; margin: 0;
+    flex-direction: column; gap: 22px; padding: 24px 14px 16px; overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+  .tab-set { flex-direction: column; align-items: stretch; }
+  .tab-group { align-self: flex-start; padding: 0 12px 6px; }
+  .theme-toggle { margin: auto 0 0 6px; }
+
+  /* Playing: an icon rail */
+  body:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) { padding-left: 72px; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tabs { width: 72px; padding: 16px 10px; gap: 10px; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tab-group { font-size: 0; padding: 0; height: 1px; width: 100%; background: var(--border); margin: 4px 0; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tab-set:first-child .tab-group { display: none; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tabs a { font-size: 0; justify-content: center; padding: 11px 0; gap: 0; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tabs a::before { width: 20px; height: 20px; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tabs a.done::after { position: absolute; top: 4px; right: 6px; width: 12px; height: 12px; margin: 0; box-shadow: 0 0 0 2px var(--card); }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .theme-toggle { margin: auto auto 0; }
+}
+@media (max-width: 899px) {
+  .tabs {
+    overflow-x: auto; margin: -16px -16px 20px; padding: 8px 12px; gap: 14px;
+    border-bottom: 1px solid var(--border); scrollbar-width: none;
+  }
+  .tab-set { flex: none; }
+  .tab-group { padding: 0 4px 0 0; }
+  .tabs a { white-space: nowrap; padding: 7px 10px; }
+  .tabs a.done::after { margin-left: 2px; }
+  main:has(#game:not([hidden]), #grid:not([hidden]), #connect:not([hidden])) .tabs { margin-top: -8px; }
+}

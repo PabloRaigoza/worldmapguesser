@@ -228,6 +228,27 @@
       if (a.classList.contains("active")) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     }
+    markDone();
+    // On phones the menu is a sideways strip: scroll the current quiz into view.
+    const nav = document.querySelector(".tabs"), cur = nav?.querySelector("a.active");
+    if (cur && nav.scrollWidth > nav.clientWidth) {
+      const n = nav.getBoundingClientRect(), c = cur.getBoundingClientRect();
+      nav.scrollLeft += c.left - n.left - (n.width - c.width) / 2;
+    }
+  }
+
+  // Quiz menu: a green check on every quiz whose biggest category (World, All states…) has a finished
+  // speed run, in any variant. Each quiz keeps its records under its own prefix, so read them all.
+  function markDone() {
+    for (const a of document.querySelectorAll(".tabs a")) {
+      const k = KINDS[a.dataset.kind];
+      if (!k) continue;
+      const recs = k.prefix === K.prefix ? records : load(`${k.prefix}.records`, {});
+      const done = !k.connect && Object.keys(recs).some((r) => r === k.all || r.startsWith(`${k.all} · `));
+      a.classList.toggle("done", done);
+      const group = a.closest(".tab-set")?.querySelector(".tab-group")?.textContent;
+      a.title = `${group ? `${group} · ` : ""}${a.textContent.trim()}` + (done ? ` · ${k.all} speed run done` : "");
+    }
   }
 
   function syncOptions() {
@@ -1683,6 +1704,7 @@
     } else if (ranked && (!prev || ms < prev.ms)) {
       records[rk] = { ms, at: Date.now() };
       saveRecords();
+      markDone();
       $("res-title").textContent = `New record! ${fmtRun(ms)}`;
       $("res-summary").textContent = prev
         ? `${s.label} · previous best ${fmtRun(prev.ms)} (−${((prev.ms - ms) / 1000).toFixed(2)}s)`
